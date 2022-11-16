@@ -184,9 +184,9 @@ struct Monitor {
 	struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
 	struct wl_listener frame;
 	struct wl_listener destroy;
-	struct wl_listener request_state;
 	struct wl_listener destroy_lock_surface;
 	struct wlr_session_lock_surface_v1 *lock_surface;
+	struct wl_listener request_state;
 	struct wlr_box m; /* monitor area, layout-relative */
 	struct wlr_box w; /* window area, layout-relative */
 	struct wl_list layers[4]; /* LayerSurface::link */
