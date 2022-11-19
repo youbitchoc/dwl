@@ -71,7 +71,7 @@
 #define IDLE_NOTIFY_ACTIVITY    wlr_idle_notify_activity(idle, seat), wlr_idle_notifier_v1_notify_activity(idle_notifier, seat)
 
 /* enums */
-enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
+enum { CurNormal, CurPressed, CurSelect, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11Managed, X11Unmanaged }; /* client types */
 enum { LyrBg, LyrBottom, LyrTop, LyrOverlay, LyrTile, LyrFloat, LyrFS, LyrDragIcon, NUM_LAYERS }; /* scene layers */
 #ifdef XWAYLAND
@@ -326,7 +326,7 @@ static struct wlr_xcursor_manager *cursor_mgr;
 static struct wlr_seat *seat;
 static struct wl_list keyboards;
 static unsigned int cursor_mode;
-static Client *grabc;
+static Client *grabc = NULL;
 static int grabcx, grabcy; /* client-relative */
 
 static struct wlr_output_layout *output_layout;
@@ -564,7 +564,27 @@ buttonpress(struct wl_listener *listener, void *data)
 		break;
 	case WLR_BUTTON_RELEASED:
 		/* If you released any buttons, we exit interactive move/resize mode. */
-		if (cursor_mode != CurNormal && cursor_mode != CurPressed) {
+		switch (cursor_mode) {
+		case CurPressed:
+			cursor_mode = CurNormal;
+		case CurNormal:
+			break;
+		case CurSelect:
+			return;
+		case CurResize:
+			/* a label can only be part of a statement - Wpedantic */
+			{
+				int w = abs((int) cursor->x - grabcx);
+				int h = abs((int) cursor->y - grabcy);
+				if (w > 1 && h > 1) {
+					setfloating(grabc, 1);
+					resize(grabc, (struct wlr_box){.x = MIN(cursor->x, grabcx),
+							.y = MIN(cursor->y, grabcy),
+							.width = w, .height = h}, 1);
+				}
+			}
+			/* fallthrough */
+		default:
 			cursor_mode = CurNormal;
 			/* Clear the pointer focus, this way if the cursor is over a surface
 			 * we will send an enter event after which the client will provide us
@@ -572,11 +592,12 @@ buttonpress(struct wl_listener *listener, void *data)
 			wlr_seat_pointer_clear_focus(seat);
 			motionnotify(0);
 			/* Drop the window off on its new monitor */
-			selmon = xytomon(cursor->x, cursor->y);
-			setmon(grabc, selmon, 0);
+			if (grabc) {
+				selmon = xytomon(cursor->x, cursor->y);
+				setmon(grabc, selmon, 0);
+				grabc = NULL;
+			}
 			return;
-		} else {
-			cursor_mode = CurNormal;
 		}
 		break;
 	}
@@ -1457,15 +1478,33 @@ motionnotify(uint32_t time)
 		wlr_scene_node_set_position(icon->data, cursor->x + icon->surface->current.dx,
 				cursor->y + icon->surface->current.dy);
 	/* If we are currently grabbing the mouse, handle and return */
-	if (cursor_mode == CurMove) {
+	switch (cursor_mode) {
+	case CurSelect:
+		return;
+	case CurMove:
 		/* Move the grabbed client to the new position. */
 		resize(grabc, (struct wlr_box){.x = cursor->x - grabcx, .y = cursor->y - grabcy,
 			.width = grabc->geom.width, .height = grabc->geom.height}, 1);
 		return;
-	} else if (cursor_mode == CurResize) {
-		resize(grabc, (struct wlr_box){.x = grabc->geom.x, .y = grabc->geom.y,
-			.width = cursor->x - grabc->geom.x, .height = cursor->y - grabc->geom.y}, 1);
-		return;
+	case CurResize:
+		{
+			int w, h, x, y;
+			if (!grabc)
+				return;
+			w = abs((int) (grabcx - cursor->x));
+			h = abs((int) (grabcy - cursor->y));
+			x = MIN(grabcx, cursor->x) - grabc->geom.x;
+			y = MIN(grabcy, cursor->y) - grabc->geom.y;
+			wlr_scene_rect_set_size(grabc->border[0], w, grabc->bw);
+			wlr_scene_rect_set_size(grabc->border[1], w, grabc->bw);
+			wlr_scene_rect_set_size(grabc->border[2], grabc->bw, h - 2 * grabc->bw);
+			wlr_scene_rect_set_size(grabc->border[3], grabc->bw, h - 2 * grabc->bw);
+			wlr_scene_node_set_position(&grabc->border[0]->node, x, y);
+			wlr_scene_node_set_position(&grabc->border[1]->node, x, y + h - grabc->bw);
+			wlr_scene_node_set_position(&grabc->border[2]->node, x, y + grabc->bw);
+			wlr_scene_node_set_position(&grabc->border[3]->node, x + w - grabc->bw, y + grabc->bw);
+			return;
+		}
 	}
 
 	/* Find the client under the pointer and send the event along. */
@@ -1508,30 +1547,42 @@ motionrelative(struct wl_listener *listener, void *data)
 void
 moveresize(const Arg *arg)
 {
-	if (cursor_mode != CurNormal && cursor_mode != CurPressed)
-		return;
-	xytonode(cursor->x, cursor->y, NULL, &grabc, NULL, NULL, NULL);
-	if (!grabc || client_is_unmanaged(grabc) || grabc->isfullscreen)
-		return;
+	/* Consider global select bool instead of this + CurSelect enum */
+	bool selected = (cursor_mode == CurSelect);
+	if (!selected) {
+		if (cursor_mode != CurNormal && cursor_mode != CurPressed)
+			return;
+		xytonode(cursor->x, cursor->y, NULL, &grabc, NULL, NULL, NULL);
+	}
 
-	/* Float the window and tell motionnotify to grab it */
-	setfloating(grabc, 1);
+	if (!grabc || client_is_unmanaged(grabc) || grabc->isfullscreen) {
+		grabc = NULL;
+		cursor_mode = CurNormal;
+		return;
+	}
+
+	/* TODO: factor out selected bool */
 	switch (cursor_mode = arg->ui) {
+	case CurResize:
+		if (!selected) break;
+		grabcx = cursor->x;
+		grabcy = cursor->y;
+		wlr_xcursor_manager_set_cursor_image(cursor_mgr,
+				(cursor_image = "tcross"), cursor);
+		return;
 	case CurMove:
 		grabcx = cursor->x - grabc->geom.x;
 		grabcy = cursor->y - grabc->geom.y;
-		wlr_xcursor_manager_set_cursor_image(cursor_mgr, (cursor_image = "fleur"), cursor);
-		break;
-	case CurResize:
-		/* Doesn't work for X11 output - the next absolute motion event
-		 * returns the cursor to where it started */
-		wlr_cursor_warp_closest(cursor, NULL,
-				grabc->geom.x + grabc->geom.width,
-				grabc->geom.y + grabc->geom.height);
+		/* Float the window and tell motionnotify to grab it */
+		setfloating(grabc, 1);
 		wlr_xcursor_manager_set_cursor_image(cursor_mgr,
-				(cursor_image = "bottom_right_corner"), cursor);
-		break;
+				(cursor_image = "fleur"), cursor);
+		return;
 	}
+
+	cursor_mode = CurSelect;
+	wlr_xcursor_manager_set_cursor_image(cursor_mgr,
+			(cursor_image = "target"), cursor);
 }
 
 void
@@ -1736,6 +1787,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 	wlr_scene_rect_set_size(c->border[1], c->geom.width, c->bw);
 	wlr_scene_rect_set_size(c->border[2], c->bw, c->geom.height - 2 * c->bw);
 	wlr_scene_rect_set_size(c->border[3], c->bw, c->geom.height - 2 * c->bw);
+	wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
 	wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
 	wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
 	wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
