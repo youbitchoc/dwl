@@ -1126,6 +1126,15 @@ destroypointerconstraint(struct wl_listener *listener, void *data)
 		}
 		wl_list_init(&constraint_commit.link);
 		active_constraint = NULL;
+
+		if (constraint->type == WLR_POINTER_CONSTRAINT_V1_LOCKED) {
+			Client *c = NULL;
+			toplevel_from_wlr_surface(constraint->surface, &c, NULL);
+			if (c)
+				wlr_cursor_warp_closest(cursor, NULL,
+						c->geom.x + c->geom.width / 2,
+						c->geom.y + c->geom.height / 2);
+		}
 	}
 
 	free(pointer_constraint);
