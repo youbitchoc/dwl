@@ -480,6 +480,10 @@ applyrules(Client *c)
 			wl_list_for_each(m, &mons, link)
 				if (r->monitor == i++)
 					mon = m;
+			if (c->isfloating) {
+				c->geom.x = (mon->w.width - c->geom.width) / 2 + mon->m.x;
+				c->geom.y = (mon->w.height - c->geom.height) / 2 + mon->m.y;
+			}
 		}
 	}
 	wlr_scene_node_reparent(&c->scene->node, layers[c->isfloating ? LyrFloat : LyrTile]);
@@ -1594,6 +1598,8 @@ mapnotify(struct wl_listener *listener, void *data)
 	if (c->type == XDGShell && (p = client_get_parent(c))) {
 		c->isfloating = 1;
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrFloat]);
+		c->geom.x = (p->mon->w.width - c->geom.width) / 2 + p->mon->m.x;
+		c->geom.y = (p->mon->w.height - c->geom.height) / 2 + p->mon->m.y;
 		setmon(c, p->mon, p->tags);
 	} else {
 		applyrules(c);
