@@ -1002,7 +1002,7 @@ createmon(struct wl_listener *listener, void *data)
 void
 createpointerconstraint(struct wl_listener *listener, void *data)
 {
-	if (selclient()) {
+	if (focustop(selmon)){
 		struct wlr_pointer_constraint_v1 *constraint = data;
 		struct pointer_constraint *pointer_constraint = calloc(1, sizeof(struct pointer_constraint));
 		pointer_constraint->constraint = constraint;
@@ -1010,7 +1010,7 @@ createpointerconstraint(struct wl_listener *listener, void *data)
 		pointer_constraint->destroy.notify = destroypointerconstraint;
 		wl_signal_add(&constraint->events.destroy, &pointer_constraint->destroy);
 
-		if (client_surface(selclient()) == constraint->surface) {
+		if (client_surface(focustop(selmon)) == constraint->surface) {
 			if (allow_constrain == 0 || active_constraint == constraint)
 				return;
 
