@@ -511,6 +511,12 @@ arrange(Monitor *m)
 
 	if (m->lt[m->sellt]->arrange)
 		m->lt[m->sellt]->arrange(m);
+
+	if (active_constraint) {
+		wlr_pointer_constraint_v1_send_deactivated(active_constraint);
+		active_constraint = NULL;
+	}
+
 	motionnotify(0);
 	checkidleinhibitor(NULL);
 }
@@ -1416,7 +1422,8 @@ fullscreennotify(struct wl_listener *listener, void *data)
 void
 handleconstraintcommit(struct wl_listener *listener, void *data)
 {
-	assert(active_constraint->surface == data);
+	if (active_constraint)
+		assert(active_constraint->surface == data);
 }
 
 void
