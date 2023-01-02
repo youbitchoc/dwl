@@ -11,6 +11,12 @@ static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0};
 #define TAGCOUNT (9)
 static const int tagcount = TAGCOUNT;
 
+/* passthrough */
+static int allow_passthru = 0;
+
+/* tagging */
+static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
 static const Rule rules[] = {
 	/* app_id     title       tags mask     isfloating  isterm  noswallow  monitor */
 	/* examples:
@@ -143,6 +149,7 @@ static const Key keys[] = {
 	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                  6),
 	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
 	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
+	{ WLR_MODIFIER_ALT|WLR_MODIFIER_LOGO|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_Escape, togglepassthru, {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Q,          quit,           {0} },
 
 	/* Ctrl-Alt-Backspace and Ctrl-Alt-Fx used to be handled by X server */
