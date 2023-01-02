@@ -309,6 +309,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
+static void togglepassthru(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unlocksession(struct wl_listener *listener, void *data);
@@ -599,6 +600,8 @@ buttonpress(struct wl_listener *listener, void *data)
 		for (b = buttons; b < END(buttons); b++) {
 			if (CLEANMASK(mods) == CLEANMASK(b->mod) &&
 					event->button == b->button && b->func) {
+				if (allow_passthru && b->func != togglepassthru)
+					continue;
 				b->func(&b->arg);
 				return;
 			}
@@ -1383,6 +1386,8 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 	for (k = keys; k < END(keys); k++) {
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
 				sym == k->keysym && k->func) {
+			if (allow_passthru && k->func != togglepassthru)
+				continue;
 			k->func(&k->arg);
 			handled = 1;
 		}
@@ -2431,6 +2436,12 @@ togglefullscreen(const Arg *arg)
 	Client *sel = focustop(selmon);
 	if (sel)
 		setfullscreen(sel, !sel->isfullscreen);
+}
+
+void
+togglepassthru(const Arg *arg)
+{
+	allow_passthru = !allow_passthru;
 }
 
 void
