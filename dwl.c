@@ -512,11 +512,6 @@ arrange(Monitor *m)
 	if (m->lt[m->sellt]->arrange)
 		m->lt[m->sellt]->arrange(m);
 
-	if (active_constraint) {
-		wlr_pointer_constraint_v1_send_deactivated(active_constraint);
-		active_constraint = NULL;
-	}
-
 	motionnotify(0);
 	checkidleinhibitor(NULL);
 }
@@ -1776,6 +1771,7 @@ motionnotify(uint32_t time)
 void
 motionrelative(struct wl_listener *listener, void *data)
 {
+	Client *c;
 	/* This event is forwarded by the cursor when a pointer emits a _relative_
 	 * pointer motion event (i.e. a delta) */
 	struct wlr_pointer_motion_event *event = data;
@@ -1789,7 +1785,7 @@ motionrelative(struct wl_listener *listener, void *data)
 		seat, (uint64_t)event->time_msec * 1000,
 		event->delta_x, event->delta_y, event->unaccel_dx, event->unaccel_dy);
 
-	if (!active_constraint) {
+	if (!active_constraint || ((c = focustop(selmon)) && client_surface(c) != active_constraint->surface)) {
 		wlr_cursor_move(cursor, &event->pointer->base,
 			event->delta_x, event->delta_y);
 	}
