@@ -321,6 +321,7 @@ static void startdrag(struct wl_listener *listener, void *data);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
+static void toggleconstrain(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
@@ -1785,7 +1786,7 @@ motionrelative(struct wl_listener *listener, void *data)
 		seat, (uint64_t)event->time_msec * 1000,
 		event->delta_x, event->delta_y, event->unaccel_dx, event->unaccel_dy);
 
-	if (!active_constraint || ((c = focustop(selmon)) && client_surface(c) != active_constraint->surface)) {
+	if (!allow_constrain || !active_constraint || ((c = focustop(selmon)) && client_surface(c) != active_constraint->surface)) {
 		wlr_cursor_move(cursor, &event->pointer->base,
 			event->delta_x, event->delta_y);
 	}
@@ -2538,6 +2539,12 @@ tile(Monitor *m)
 		}
 		i++;
 	}
+}
+
+void
+toggleconstrain(const Arg *arg)
+{
+	allow_constrain = !allow_constrain;
 }
 
 void
