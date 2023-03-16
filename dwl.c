@@ -656,8 +656,11 @@ buttonpress(struct wl_listener *listener, void *data)
 		for (b = buttons; b < END(buttons); b++) {
 			if (CLEANMASK(mods) == CLEANMASK(b->mod) &&
 					event->button == b->button && b->func) {
-				if (allow_passthru && b->func != togglepassthru)
-					continue;
+				if (allow_passthru) {
+					if (b->func != togglepassthru) continue;
+					b->func(&b->arg);
+					break;
+				}
 				b->func(&b->arg);
 				return;
 			}
@@ -1720,10 +1723,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym)
 	for (k = keys; k < END(keys); k++) {
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
 				sym == k->keysym && k->func) {
-			if (allow_passthru && k->func != togglepassthru)
-				continue;
+			if (allow_passthru) {
+				if (k->func != togglepassthru) continue;
+			} else handled = 1;
 			k->func(&k->arg);
-			handled = 1;
 		}
 	}
 	return handled;
