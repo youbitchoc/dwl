@@ -25,6 +25,9 @@ static const int swipe_fingers_count       = 3;
 /* logging */
 static int log_level = WLR_ERROR;
 
+/* pointer constraints */
+static int allow_constrain      = 1;
+
 static const Rule rules[] = {
 	/* app_id     title       tags mask     isfloating  isterm  noswallow  monitor */
 	/* examples:
@@ -144,6 +147,7 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_space,      setlayout,      {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,      togglefloating, {0} },
 	{ MODKEY,                    XKB_KEY_e,         togglefullscreen, {0} },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_p,         toggleconstrain, {0} },
 	{ MODKEY,                    XKB_KEY_0,          view,           {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright, tag,            {.ui = ~0} },
 	{ MODKEY,                    XKB_KEY_comma,      focusmon,       {.i = WLR_DIRECTION_LEFT} },
