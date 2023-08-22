@@ -323,7 +323,7 @@ static void urgent(struct wl_listener *listener, void *data);
 static void view(const Arg *arg);
 static void virtualkeyboard(struct wl_listener *listener, void *data);
 static Monitor *xytomon(double x, double y);
-static struct wlr_scene_node *xytonode(double x, double y, struct wlr_surface **psurface,
+static void xytonode(double x, double y, struct wlr_surface **psurface,
 		Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
 
@@ -2655,7 +2655,7 @@ xytomon(double x, double y)
 	return o ? o->data : NULL;
 }
 
-struct wlr_scene_node *
+void
 xytonode(double x, double y, struct wlr_surface **psurface,
 		Client **pc, LayerSurface **pl, double *nx, double *ny)
 {
@@ -2684,7 +2684,6 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 	if (psurface) *psurface = surface;
 	if (pc) *pc = c;
 	if (pl) *pl = l;
-	return node;
 }
 
 void
