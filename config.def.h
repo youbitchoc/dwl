@@ -13,7 +13,10 @@ static const float urgentcolor[]           = COLOR(0xff0000ff);
 /* To conform the xdg-protocol, set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0}; /* You can also use glsl colors */
 
-/* tagging - TAGCOUNT must be no greater than 31 */
+static const unsigned int swipe_min_threshold = 0;
+static const int swipe_fingers_count       = 3;
+
+/* tagging - tagcount must be no greater than 31 */
 #define TAGCOUNT (9)
 
 /* logging */
@@ -163,4 +166,11 @@ static const Button buttons[] = {
 	{ MODKEY, BTN_LEFT,   moveresize,     {.ui = CurMove} },
 	{ MODKEY, BTN_MIDDLE, togglefloating, {0} },
 	{ MODKEY, BTN_RIGHT,  moveresize,     {.ui = CurResize} },
+};
+
+static const Gesture gestures[] = {
+	// { SWIPE_LEFT, shiftview, { .i = 1 } },
+	// { SWIPE_RIGHT, shiftview, { .i = -1 } },
+	{ SWIPE_UP, focusstack, {.i = 1} },
+	{ SWIPE_DOWN, focusstack, {.i = -1} },
 };
