@@ -2515,6 +2515,11 @@ unmapnotify(struct wl_listener *listener, void *data)
 		wl_list_remove(&c->flink);
 	}
 
+	if (c->swallowing) {
+		c->swallowing->swallowedby = NULL;
+		c->swallowing = NULL;
+ 	}
+
 	wlr_scene_node_destroy(&c->scene->node);
 	printstatus();
 	motionnotify(0);
