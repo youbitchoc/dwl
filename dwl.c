@@ -594,6 +594,7 @@ buttonpress(struct wl_listener *listener, void *data)
 		mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
 		for (b = buttons; b < END(buttons); b++) {
 			if (CLEANMASK(mods) == CLEANMASK(b->mod) &&
+					((!c) == (!b->mod)) &&
 					event->button == b->button && b->func) {
 				b->func(&b->arg);
 				return;
